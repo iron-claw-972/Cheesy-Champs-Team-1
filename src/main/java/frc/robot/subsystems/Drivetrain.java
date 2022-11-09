@@ -32,7 +32,7 @@ public class Drivetrain extends SubsystemBase {
    */
   
   public void arcadeDrive(double throttle, double turn) {
-    m_leftMotor.set(ControlMode.PercentOutput, throttle + turn);
-    m_rightMotor.set(ControlMode.PercentOutput, throttle - turn);
+    m_leftMotor.set((throttle + turn) * 0.35);
+    m_rightMotor.set((throttle - turn) * 0.35);
   }
 }

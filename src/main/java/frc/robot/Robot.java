@@ -41,7 +41,7 @@ public class Robot extends TimedRobot {
     Operator.configureControls();
 
     drive.setDefaultCommand(
-      new RunCommand(() -> drive.arcadeDrive(Driver.getRawLeft(), Driver.getRawRight()), drive)
+      new RunCommand(() -> drive.arcadeDrive(Driver.getRawThrottleValue(), Driver.getRawTurnValue()), drive)
     );
   }
 
