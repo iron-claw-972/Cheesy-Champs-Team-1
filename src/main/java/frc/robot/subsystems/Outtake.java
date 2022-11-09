@@ -8,7 +8,9 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class Outtake extends SubsystemBase {
     CANSparkMax motor = new CANSparkMax(Constants.intakeOuttake.outtakeMotorID, MotorType.kBrushless);
-    
+    public Outtake(){
+        
+    }
  public void setMotors(double power) {
     motor.set(power);
     }
