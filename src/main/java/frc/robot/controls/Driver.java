@@ -1,12 +1,18 @@
 package frc.robot.controls;
 
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import frc.robot.commands.DoNothing;
 import frc.robot.constants.Constants;
+import frc.robot.util.Functions;
 import lib.controllers.GameController;
 import lib.controllers.GameController.Axis;
 import lib.controllers.GameController.Button;
 
 public class Driver {
+  private static SlewRateLimiter slewThrottle = new SlewRateLimiter(3);
+  private static SlewRateLimiter slewTurn = new SlewRateLimiter(3);
+  
+
   private static GameController driver = new GameController(Constants.oi.kDriverJoy);
 
   public static void configureControls() {
@@ -32,5 +38,16 @@ public class Driver {
   public static double getRawRight() {
     return driver.get(Axis.RIGHT_Y);
   }
+
+  public static double getThrottleValue() {
+    
+    return slewThrottle.calculate(Functions.deadband(0.05, getRawThrottleValue()));
+    
+  }
+  public static double getTurnValue() {
+    return slewTurn.calculate(Functions.deadband(0.05, getRawTurnValue()));
+
+  }
+
 
 }
