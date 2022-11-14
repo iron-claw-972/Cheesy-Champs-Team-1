@@ -25,7 +25,7 @@ public class Drivetrain extends SubsystemBase {
   public Drivetrain() {
     m_leftMotor = MotorFactory.createTalonFX(Constants.drive.kLeftMotor);
     m_rightMotor = MotorFactory.createTalonFX(Constants.drive.kRightMotor);
-    m_leftMotor.setInverted(true);
+    m_rightMotor.setInverted(true);
   }
 
   /**
@@ -37,16 +37,16 @@ public class Drivetrain extends SubsystemBase {
 
   public PIDController m_pid = new PIDController(Constants.pid.kP, Constants.pid.kI, Constants.pid.kD);
   // TODO 4.1: Also add a double for the setpoint, and a boolean for if the PID is enabled.
-  double setpoint = 10000;
+  double setpoint;
   public boolean pidEnabled = false;
-  boolean pid_enabled = true;
 
   @Override
   public void periodic() {
     // TODO 4.1: Periodic runs periodically, so we will update the PID here and set the motors. 
     if (pidEnabled) {
-      m_leftMotor.set(m_pid.calculate(getEncoderPosition(true), setpoint));
-      m_rightMotor.set(m_pid.calculate(getEncoderPosition(true), setpoint));
+      System.out.println(getEncoderPosition(true) * Constants.drive.kSetpointToTicks);
+      m_leftMotor.set(m_pid.calculate(getEncoderPosition(true) * Constants.drive.kSetpointToTicks, setpoint));
+      m_rightMotor.set(m_pid.calculate(getEncoderPosition(true) * Constants.drive.kSetpointToTicks, setpoint));
     } else {
       m_leftMotor.stopMotor();
       m_rightMotor.stopMotor();
@@ -77,10 +77,10 @@ public class Drivetrain extends SubsystemBase {
     setpoint = new_setpoint;
   }
   public void enablePID() {
-    pid_enabled = true;
+    pidEnabled = true;
   }
   public void disablePID() {
-    pid_enabled = false;
+    pidEnabled = false;
   }
   public void resetPID() {
     m_pid.reset();
