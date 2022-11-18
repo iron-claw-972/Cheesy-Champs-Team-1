@@ -12,6 +12,6 @@ public class Driver {
 
   public static void configureControls() {
     driver.get(Button.A).whenPressed(new RunCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.intakeMotorPower) ) );
+    driver.get(Button.B).whenPressed(new RunCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.outtakeMotorPower) ) );
   }
-
 }
