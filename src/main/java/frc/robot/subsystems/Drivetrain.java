@@ -8,15 +8,18 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.kauailabs.navx.frc.AHRS;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants;
 import frc.robot.constants.DriveConstants;
 import frc.robot.util.MotorFactory;
-
 
 public class Drivetrain extends SubsystemBase {
 
@@ -25,14 +28,22 @@ public class Drivetrain extends SubsystemBase {
   private final WPI_TalonFX m_rightMotor1;
 
   private final DifferentialDrive m_drive;
+
+  private AHRS ahrs = new AHRS(SerialPort.Port.kMXP); 
  
+  private final DifferentialDriveOdometry m_odometry;
+  
   public Drivetrain() {
     m_leftMotor1 = MotorFactory.createTalonFX(Constants.drive.kLeftMotor1);
   
     m_rightMotor1 = MotorFactory.createTalonFX(Constants.drive.kRightMotor1);
 
     m_drive = new DifferentialDrive(m_leftMotor1, m_rightMotor1);
+    //setting distance per pulse
+    m_leftMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
+    m_rightMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
   }
+
   /**
    * Drives the robot using tank drive controls
    * Tank drive is slightly easier to code but less intuitive to control, so this is here as an example for now
@@ -59,10 +70,25 @@ public class Drivetrain extends SubsystemBase {
 }
   public double getRightEncoderValues() {
   return m_rightMotor1.getSelectedSensorPosition();
-} 
+  } 
+  public double getHeading() {
+    return ahrs.getRotation2d().getDegrees();
+  }
 
-m_leftEncoder.setDistancePerPulse(DriveConstants.kEncoderDistancePerPulse);
-m_rightEncoder.setDistancePerPulse(DriveConstants.kEncoderDistancePerPulse);
+  @Override
+  public void periodic() {
+    // Update the odometry in the periodic block
+    m_odometry.update(
+        ahrs.getRotation2d(), m_leftMotor1.getSelectedSensorPosition(), m_rightMotor1.getSelectedSensorPosition());
+  }
 
-    }
+  public Pose2d getPose() {
+    return m_odometry.getPoseMeters();
+  }
+
+  public void tankDriveVolts(double leftVolts, double rightVolts) {
+    m_leftMotor1.setVoltage(leftVolts);
+    m_rightMotor1.setVoltage(rightVolts);
+  }
+}
 
