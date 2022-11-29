@@ -9,86 +9,67 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.kauailabs.navx.frc.AHRS;
+
+import java.util.List;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.math.trajectory.Trajectory;
+import edu.wpi.first.math.trajectory.TrajectoryConfig;
+import edu.wpi.first.math.trajectory.TrajectoryGenerator;
+import edu.wpi.first.math.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.constants.AutoConstants;
 import frc.robot.constants.Constants;
 import frc.robot.constants.DriveConstants;
 import frc.robot.util.MotorFactory;
 
 public class Drivetrain extends SubsystemBase {
-
-  private final WPI_TalonFX m_leftMotor1;
-
-  private final WPI_TalonFX m_rightMotor1;
-
-  private final DifferentialDrive m_drive;
-
-  private AHRS ahrs = new AHRS(SerialPort.Port.kMXP); 
- 
-  private final DifferentialDriveOdometry m_odometry;
-  
-  public Drivetrain() {
-    m_leftMotor1 = MotorFactory.createTalonFX(Constants.drive.kLeftMotor1);
-  
-    m_rightMotor1 = MotorFactory.createTalonFX(Constants.drive.kRightMotor1);
-
-    m_drive = new DifferentialDrive(m_leftMotor1, m_rightMotor1);
-    //setting distance per pulse
-    m_leftMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
-    m_rightMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
-  }
-
-  /**
-   * Drives the robot using tank drive controls
-   * Tank drive is slightly easier to code but less intuitive to control, so this is here as an example for now
-   * @param leftPower the commanded power to the left motors
-   * @param rightPower the commanded power to the right motors
-   */
-  public void tankDrive(double leftPower, double rightPower) {
-    m_leftMotor1.set(ControlMode.PercentOutput, leftPower);
-    m_rightMotor1.set(ControlMode.PercentOutput, rightPower);
-  }
-
-  /**
-   * Drives the robot using arcade controls.
-   *
-   * @param forward the commanded forward movement
-   * @param turn the commanded turn rotation
-   */
-  public void arcadeDrive(double throttle, double turn) {
-    m_leftMotor1.set(ControlMode.PercentOutput, throttle + turn);
-    m_rightMotor1.set(ControlMode.PercentOutput, throttle - turn);
-}
-  public double getLeftEncoderValues() {
-  return m_leftMotor1.getSelectedSensorPosition();
-}
-  public double getRightEncoderValues() {
-  return m_rightMotor1.getSelectedSensorPosition();
-  } 
-  public double getHeading() {
-    return ahrs.getRotation2d().getDegrees();
-  }
-
-  @Override
-  public void periodic() {
-    // Update the odometry in the periodic block
-    m_odometry.update(
-        ahrs.getRotation2d(), m_leftMotor1.getSelectedSensorPosition(), m_rightMotor1.getSelectedSensorPosition());
-  }
-
-  public Pose2d getPose() {
-    return m_odometry.getPoseMeters();
-  }
-
-  public void tankDriveVolts(double leftVolts, double rightVolts) {
     m_leftMotor1.setVoltage(leftVolts);
     m_rightMotor1.setVoltage(rightVolts);
   }
+  
+  DifferentialDriveVoltageConstraint autoVoltageConstraint =
+     new DifferentialDriveVoltageConstraint(
+       new SimpleMotorFeedforward (DriveConstants.ksVolts,
+                                  DriveConstants.kvVoltSecondsPerMeter,
+                                  DriveConstants.kaVoltSecondsSquaredPerMeter),
+      DriveConstants.kDriveKinematics,
+      10);                          
+     
+   // Config for trajectory
+   
+  TrajectoryConfig config = new TrajectoryConfig(AutoConstants.kMaxSpeedMetersPerSecond, AutoConstants.kMaxAccelerationMetersPerSecondSquared)
+    .setKinematics(DriveConstants.kDriveKinematics)
+    .addConstraint(autoVoltageConstraint);
+
+  
+      
+  Trajectory robotTrajectory = TrajectoryGenerator.generateTrajectory(
+      // Start at the origin facing the +X direction
+      new Pose2d(0, 0, new Rotation2d(0)),
+      // Pass through these two interior waypoints, making an 's' curve path
+      List.of(
+          new Translation2d(1, 1),
+          new Translation2d(2, -1)
+      ),
+      // End 3 meters straight ahead of where we started, facing forward
+      new Pose2d(3, 0, new Rotation2d(0)),
+      // Pass config
+      config
+  );
+  // Reset odometry to the starting pose of the trajectory.
+  m_drive.resetOdometry(robotTrajectory.getInitialPose());
+
+
 }
 
+  
