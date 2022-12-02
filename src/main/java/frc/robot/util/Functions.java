@@ -8,6 +8,7 @@ import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import frc.robot.constants.AutoConstants;
 import frc.robot.constants.Constants;
 
 public class Functions {
@@ -44,7 +45,7 @@ public class Functions {
 
   public static void loadPaths() {
     double totalTime = 0;
-    File[] directoryListing = Filesystem.getDeployDirectory().toPath().resolve(Constants.auto.kTrajectoryDirectory).toFile().listFiles();
+    File[] directoryListing = Filesystem.getDeployDirectory().toPath().resolve(AutoConstants.kTrajectoryDirectory).toFile().listFiles();
     if (directoryListing != null) {
       for (File file : directoryListing) {
         if (file.isFile() && file.getName().indexOf(".") != -1) {
@@ -73,7 +74,7 @@ public class Functions {
     try {
       return TrajectoryUtil.fromPathweaverJson(
         Filesystem.getDeployDirectory().toPath().resolve(
-          Constants.auto.kTrajectoryDirectory + trajectoryName + ".wpilib.json"
+          AutoConstants.kTrajectoryDirectory + trajectoryName + ".wpilib.json"
         )
       );
     } catch (IOException ex) {

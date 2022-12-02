@@ -1,96 +1,278 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.robot.subsystems;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.kauailabs.navx.frc.AHRS;
-import edu.wpi.first.wpilibj.SPI;
-import com.ctre.phoenix.motorcontrol.ControlMode;
 
+import ctre_shims.PhoenixMotorControllerGroup;
+import ctre_shims.TalonEncoder;
+import ctre_shims.TalonEncoderSim;
+
+import com.ctre.phoenix.motorcontrol.NeutralMode;
+
+import edu.wpi.first.hal.SimDouble;
+import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.RamseteController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.math.numbers.N2;
+import edu.wpi.first.math.system.LinearSystem;
+import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.constants.Constants;
-import frc.robot.constants.DriveConstants;
-import frc.robot.util.MotorFactory;
+import lib.Motors;
+
 
 public class Drivetrain extends SubsystemBase {
 
   private final WPI_TalonFX m_leftMotor1;
-
   private final WPI_TalonFX m_rightMotor1;
 
-  private final DifferentialDrive m_drive;
+  private final TalonEncoder m_leftEncoder;
+  private final TalonEncoder m_rightEncoder;
 
-  private AHRS ahrs = new AHRS(SPI.Port.kMXP); 
- 
+  private final PhoenixMotorControllerGroup m_leftMotors;
+  private final PhoenixMotorControllerGroup m_rightMotors;
+
+  private final DifferentialDrive m_dDrive;
+
+  private final AHRS m_gyro;
+
+  private final PIDController m_leftDrivePID = new PIDController(
+    Constants.drive.kLeftDriveP,
+    Constants.drive.kLeftDriveI,
+    Constants.drive.kLeftDriveD
+  );
+  private final PIDController m_rightDrivePID = new PIDController(
+    Constants.drive.kRightDriveP,
+    Constants.drive.kRightDriveI,
+    Constants.drive.kRightDriveD
+  );
+
+  private final DifferentialDriveKinematics m_kinematics = new DifferentialDriveKinematics(Constants.drive.kTrackWidth);
   private final DifferentialDriveOdometry m_odometry;
+
+  private final SimpleMotorFeedforward m_driveFF = new SimpleMotorFeedforward(Constants.drive.kSLinear, Constants.drive.kVLinear);
+  private final RamseteController ramseteController = new RamseteController(Constants.auto.kRamseteB, Constants.auto.kRamseteZeta); 
+
+  private final Field2d m_field = new Field2d();
+
+  // Simulation
+  private final TalonEncoderSim m_leftEncoderSim;
+  private final TalonEncoderSim m_rightEncoderSim;
+  private final LinearSystem<N2, N2, N2> m_driveSystem = LinearSystemId.identifyDrivetrainSystem(
+    Constants.drive.kVLinear,
+    Constants.drive.kALinear,
+    Constants.drive.kVAngular,
+    Constants.drive.kAAngular
+  );
+  private final DifferentialDrivetrainSim m_driveSim = new DifferentialDrivetrainSim(
+    m_driveSystem,
+    Constants.drive.kGearbox,
+    Constants.drive.kGearRatio,
+    Constants.drive.kTrackWidth,
+    Constants.drive.kWheelRadius,
+    null
+  );
   
   public Drivetrain() {
-    m_leftMotor1 = MotorFactory.createTalonFX(Constants.drive.kLeftMotor1);
-    
-    m_rightMotor1 = MotorFactory.createTalonFX(Constants.drive.kRightMotor1);
-    m_odometry = new DifferentialDriveOdometry(new Rotation2d(ahrs.getFusedHeading()));
-    
-    m_drive = new DifferentialDrive(m_leftMotor1, m_rightMotor1);
-    //setting distance per pulse
-    m_leftMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
-    m_rightMotor1.configSelectedFeedbackCoefficient(1/2048*12/62*Math.PI*Units.inchesToMeters(4));
-  }
-  
-  /**
-   * Drives the robot using tank drive controls
-   * Tank drive is slightly easier to code but less intuitive to control, so this is here as an example for now
-   * @param leftPower the commanded power to the left motors
-   * @param rightPower the commanded power to the right motors
-   */
-  public void tankDrive(double leftPower, double rightPower) {
-    m_leftMotor1.set(ControlMode.PercentOutput, leftPower);
-    m_rightMotor1.set(ControlMode.PercentOutput, rightPower);
+    this(
+      Motors.createTalonFX(Constants.drive.kLeftMotorId, NeutralMode.Brake, true, 30, 40, 1),
+      Motors.createTalonFX(Constants.drive.kRightMotorId, NeutralMode.Brake, true, 30, 40, 1)
+    );
   }
 
-  /**
-   * Drives the robot using arcade controls.
-   *
-   * @param forward the commanded forward movement
-   * @param turn the commanded turn rotation
-   */
-  public void arcadeDrive(double throttle, double turn) {
-    m_leftMotor1.set(ControlMode.PercentOutput, throttle + turn);
-    m_rightMotor1.set(ControlMode.PercentOutput, throttle - turn);
-}
-  public double getLeftEncoderValues() {
-  return m_leftMotor1.getSelectedSensorPosition();
-}
-  public double getRightEncoderValues() {
-  return m_rightMotor1.getSelectedSensorPosition();
-  } 
-  public double getHeading() {
-    return ahrs.getRotation2d().getDegrees();
+  public Drivetrain(WPI_TalonFX leftMotor1, WPI_TalonFX rightMotor1) {
+    this(leftMotor1, rightMotor1, new AHRS(SPI.Port.kMXP), new DifferentialDrive(leftMotor1, rightMotor1));
+  }
+
+  public Drivetrain(WPI_TalonFX leftMotor1, WPI_TalonFX rightMotor1, AHRS gyro) {
+    this(leftMotor1, rightMotor1, gyro, new DifferentialDrive(leftMotor1, rightMotor1));
+  }
+
+  public Drivetrain(WPI_TalonFX leftMotor1, WPI_TalonFX rightMotor1, DifferentialDrive dDrive) {
+    this(leftMotor1, rightMotor1, new AHRS(SPI.Port.kMXP), dDrive);
+  }
+
+  public Drivetrain(WPI_TalonFX leftMotor1, WPI_TalonFX rightMotor1, AHRS gyro, DifferentialDrive dDrive) {
+    // Motor setup
+    m_leftMotor1 = leftMotor1;
+    m_rightMotor1 = rightMotor1;
+
+    m_leftMotors = new PhoenixMotorControllerGroup(m_leftMotor1);
+    m_rightMotors = new PhoenixMotorControllerGroup(m_rightMotor1);
+
+    if (RobotBase.isSimulation()) {
+      m_leftMotors.setInverted(false);
+      m_rightMotors.setInverted(false);
+    } else {
+      m_leftMotors.setInverted(false);
+      m_rightMotors.setInverted(true);
+    }
+
+    // Encoder setup
+    m_leftEncoder = new TalonEncoder(m_leftMotor1);
+    m_rightEncoder = new TalonEncoder(m_rightMotor1);
+
+    m_leftEncoderSim = new TalonEncoderSim(m_leftEncoder);
+    m_rightEncoderSim = new TalonEncoderSim(m_rightEncoder);
+
+    m_leftEncoder.setDistancePerPulse(2 * Math.PI * Constants.drive.kWheelRadius / Constants.drive.kGearRatio / Constants.drive.kEncoderResolution);
+    m_rightEncoder.setDistancePerPulse(2 * Math.PI * Constants.drive.kWheelRadius / Constants.drive.kGearRatio / Constants.drive.kEncoderResolution);
+
+    resetEncoders();
+
+    // Gyro setup
+    m_gyro = gyro;
+    resetGyro();
+
+    // Drivetrain setup
+    m_dDrive = dDrive;
+    SmartDashboard.putData(m_dDrive);
+
+    // Odometry setup
+    m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
+
+    // Place field on Shuffleboard
+    SmartDashboard.putData("Field", m_field);
   }
 
   @Override
   public void periodic() {
-    // Update the odometry in the periodic block
+    updateOdometry();
+    m_field.setRobotPose(getPose());
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    m_driveSim.setInputs(
+      m_leftMotors.get() * RobotController.getBatteryVoltage(),
+      m_rightMotors.get() * RobotController.getBatteryVoltage()
+    );
+    m_driveSim.update(0.02);
+
+    m_leftEncoderSim.setDistance(m_driveSim.getLeftPositionMeters());
+    m_leftEncoderSim.setRate(m_driveSim.getLeftVelocityMetersPerSecond());
+    m_rightEncoderSim.setDistance(m_driveSim.getRightPositionMeters());
+    m_rightEncoderSim.setRate(m_driveSim.getRightVelocityMetersPerSecond());
+
+    // NavX Sim
+    int dev = SimDeviceDataJNI.getSimDeviceHandle("navX-Sensor[0]");
+    SimDouble angle = new SimDouble(SimDeviceDataJNI.getSimValueHandle(dev, "Yaw"));
+    // NavX expects clockwise positive, but sim outputs clockwise negative
+    angle.set(Math.IEEEremainder(-m_driveSim.getHeading().getDegrees(), 360));
+  }
+
+  public RamseteController getRamseteController(){
+    return ramseteController; 
+  }
+
+  public SimpleMotorFeedforward getDriveFF() {
+    return m_driveFF;
+  }
+
+  public PIDController getLeftDrivePID() {
+    return m_leftDrivePID;
+  }
+
+  public PIDController getRightDrivePID() {
+    return m_rightDrivePID;
+  }
+
+  public void resetGyro() {
+    m_gyro.reset();
+  }
+
+  public DifferentialDriveKinematics getKinematics(){
+    return m_kinematics; 
+  }
+  public void setSpeeds(DifferentialDriveWheelSpeeds speeds) {
+    // Calculate FF
+    final double leftFeedforward = m_driveFF.calculate(speeds.leftMetersPerSecond);
+    final double rightFeedforward = m_driveFF.calculate(speeds.rightMetersPerSecond);
+
+    // Calculate PID
+    final double leftOutput = m_leftDrivePID.calculate(m_leftEncoder.getRate(), speeds.leftMetersPerSecond);
+    final double rightOutput = m_rightDrivePID.calculate(m_rightEncoder.getRate(), speeds.rightMetersPerSecond);
+
+    // Output PID+FF
+    m_leftMotors.setVoltage(leftOutput + leftFeedforward);
+    m_rightMotors.setVoltage(rightOutput + rightFeedforward);
+    m_dDrive.feed(); 
+  }
+
+  public void feedForwardDrive(double throttle, double turn) {
+    // Convert drivetrain throttle and turn to left and right wheel speeds
+    var wheelSpeeds = m_kinematics.toWheelSpeeds(new ChassisSpeeds(throttle, 0.0, turn));
+
+    setSpeeds(wheelSpeeds);
+  }
+
+  public void updateOdometry() {
+    // Upate robot pose (x, y, theta)
     m_odometry.update(
-        ahrs.getRotation2d(), m_leftMotor1.getSelectedSensorPosition(), m_rightMotor1.getSelectedSensorPosition());
+      m_gyro.getRotation2d(),
+      m_leftEncoder.getDistance(),
+      m_rightEncoder.getDistance()
+    );
+  }
+
+  public void resetOdometry(Pose2d pose) {
+    resetEncoders();
+    m_driveSim.setPose(pose);
+    m_odometry.resetPosition(pose, m_gyro.getRotation2d());
+  }
+
+  public void resetEncoders() {
+    m_leftEncoder.reset();
+    m_rightEncoder.reset();
   }
 
   public Pose2d getPose() {
     return m_odometry.getPoseMeters();
   }
+  public double getPoseX() {
+    return getPose().getX();
+  }
 
-  public void tankDriveVolts(double leftVolts, double rightVolts) {
-    m_leftMotor1.setVoltage(leftVolts);
-    m_rightMotor1.setVoltage(rightVolts);
+  public double getPoseY() {
+    return getPose().getY();
+  }
+
+  public double getPoseRotation() {
+    return getPose().getRotation().getDegrees();
+  }
+
+  public void arcadeDrive(double throttle, double turn){
+    m_dDrive.arcadeDrive(throttle, turn);
+  }
+
+  public void tankDriveVolts(double leftVolts, double rightVolts){
+    m_leftMotors.setVoltage(leftVolts);
+    m_rightMotors.setVoltage(rightVolts);
+    m_dDrive.feed();
+  }
+
+  public double getDriveSpeed(){
+    return (m_leftEncoder.getRate() + m_rightEncoder.getRate())/2;
+  }
+
+  public double getGyroRotation(){
+    return m_gyro.getRotation2d().getDegrees();
+  }
+
+  public DifferentialDriveWheelSpeeds getWheelSpeeds(){
+    return new DifferentialDriveWheelSpeeds(m_leftEncoder.getRate(), m_rightEncoder.getRate());
   }
 }

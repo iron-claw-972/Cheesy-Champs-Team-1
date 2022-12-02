@@ -1,4 +1,5 @@
-package frc.robot.commands.auto;
+package frc.robot.commands;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,12 +10,13 @@ import com.pathplanner.lib.PathPlannerTrajectory;
 import com.pathplanner.lib.PathPoint;
 import com.pathplanner.lib.commands.PPRamseteCommand;
 
+import edu.wpi.first.math.controller.RamseteController;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Robot;
 import frc.robot.commands.DoNothing;
-import frc.robot.constants.Constants;
+import frc.robot.constants.AutoConstants;
 import frc.robot.subsystems.Drivetrain;
 import lib.PathLoader;
 
@@ -22,12 +24,12 @@ public class PathPlannerCommand extends SequentialCommandGroup{
     private Drivetrain m_drive;  
 
     public PathPlannerCommand(String pathGroupName, int pathIndex){
-        this(pathGroupName, pathIndex, Robot.drive);
+        this(pathGroupName, pathIndex, Robot.drivetrain);
     }
 
     public PathPlannerCommand(ArrayList<PathPoint> waypoints) {
       this(PathPlanner.generatePath(
-        new PathConstraints(Constants.auto.kMaxAutoSpeed, Constants.auto.kMaxAutoAccel),
+        new PathConstraints(AutoConstants.kMaxAutoSpeed, AutoConstants.kMaxAutoAccel),
         waypoints.get(0),
         waypoints.get(1),
         waypoints.subList(2, waypoints.size()).toArray(PathPoint[]::new)
@@ -54,7 +56,7 @@ public class PathPlannerCommand extends SequentialCommandGroup{
             new PPRamseteCommand(
                 path,
                 m_drive::getPose, 
-                m_drive.getRamseteController(),
+                new RamseteController(),
                 m_drive.getDriveFF(),
                 m_drive.getKinematics(),
                 m_drive::getWheelSpeeds,
