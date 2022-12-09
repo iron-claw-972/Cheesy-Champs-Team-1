@@ -30,7 +30,7 @@ public class DriveConstants {
   public final double kLeftDriveD = 0;
 
   // Right drive PID
-  public final double kRightDriveP = 0;
+  public final double kRightDriveP = 0.030487;
   public final double kRightDriveI = 0;
   public final double kRightDriveD = 0;
 
