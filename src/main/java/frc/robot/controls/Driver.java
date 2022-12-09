@@ -11,7 +11,7 @@ public class Driver {
   private static GameController driver = new GameController(Constants.oi.kDriverJoy);
 
   public static void configureControls() {
-    driver.get(Button.A).whenPressed(new RunCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.intakeMotorPower) ) );
-    driver.get(Button.B).whenPressed(new RunCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.outtakeMotorPower) ) );
+    driver.get(Button.A).whenPressed(new InstantCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.intakeMotorPower) ) );
+    driver.get(Button.B).whenReleased(new InstantCommand( () -> Robot.intake.setMotors(Constants.intakeOuttake.outtakeMotorPower) ) );
   }
 }

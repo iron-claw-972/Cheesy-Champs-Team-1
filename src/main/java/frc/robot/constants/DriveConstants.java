@@ -25,7 +25,7 @@ public class DriveConstants {
   // -1 means we haven't tuned it yet
 
   // Left drive PID
-  public final double kLeftDriveP = 0;
+  public final double kLeftDriveP = 0.030487;
   public final double kLeftDriveI = 0;
   public final double kLeftDriveD = 0;
 
@@ -35,9 +35,9 @@ public class DriveConstants {
   public final double kRightDriveD = 0;
 
   // Drive feedforward
-  public final double kSLinear = 0;
-  public final double kVLinear = 0;
-  public final double kALinear = 0;
+  public final double kSLinear = 0.59045;
+  public final double kVLinear = 0.043675;
+  public final double kALinear = 0.0016692;
 
   public final double kSAngular = 0;
   public final double kVAngular = 0;
