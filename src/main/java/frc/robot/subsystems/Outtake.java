@@ -8,13 +8,13 @@ import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class Outtake extends SubsystemBase {
-    CANSparkMax motor = new CANSparkMax(Constants.intakeOuttake.outtakeMotorID, MotorType.kBrushless);
+    //CANSparkMax motor = new CANSparkMax(Constants.intakeOuttake.outtakeMotorID, MotorType.kBrushless);
     public Outtake(){
 
-     motor.setIdleMode(IdleMode.kBrake); 
+    // motor.setIdleMode(IdleMode.kBrake); 
      
     }
  public void setMotors(double power) {
-    motor.set(power);
+    //motor.set(power);
     }
 }

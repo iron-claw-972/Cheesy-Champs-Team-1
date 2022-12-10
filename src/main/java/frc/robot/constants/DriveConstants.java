@@ -20,24 +20,24 @@ public class DriveConstants {
   public final double kDeadband = 0.05;//0.02 // don't run motors when less than X power commanded
 
   public final int kLeftMotorId = 1; // fx5
-  public final int kRightMotorId = 19; // fx6
+  public final int kRightMotorId = 35; // fx6
 
   // -1 means we haven't tuned it yet
 
   // Left drive PID
-  public final double kLeftDriveP = 0.030487;
+  public final double kLeftDriveP = 3.3811;
   public final double kLeftDriveI = 0;
   public final double kLeftDriveD = 0;
 
   // Right drive PID
-  public final double kRightDriveP = 0.030487;
+  public final double kRightDriveP = 3.3811;
   public final double kRightDriveI = 0;
   public final double kRightDriveD = 0;
 
   // Drive feedforward
-  public final double kSLinear = 0.59045;
-  public final double kVLinear = 0.043675;
-  public final double kALinear = 0.0016692;
+  public final double kSLinear = 0.37373;
+  public final double kVLinear = 2.6361;
+  public final double kALinear = 0.31486;
 
   public final double kSAngular = 0;
   public final double kVAngular = 0;
