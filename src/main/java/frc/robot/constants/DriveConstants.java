@@ -5,7 +5,7 @@ import edu.wpi.first.math.util.Units;
 
 public class DriveConstants {
   public final double kMaxDriveSpeed = 3.0; // m/s
-  public final double kMaxDriveAccel = 3.0; // m/s^2
+  
   public final double kMaxTurnSpeed = 2 * Math.PI; // rot/s
 
   public final double kTrackWidth = Units.inchesToMeters(24.79); // Distance from left wheels to right wheels
