@@ -33,7 +33,8 @@ public class ShuffleboardManager {
 
   public void chooserUpdate() {
     m_autoCommand.addOption("Do Nothing", new PrintCommand("This will do nothing!"));
-    m_autoCommand.addOption("Test PathPlanner", new PathPlannerCommand("TestRun", 0));
+    m_autoCommand.addOption("Test PathPlanner DO NOT RUN AT COMP", new PathPlannerCommand("TestRun", 0));
+    m_autoCommand.addOption("Full Auto Path", new PathPlannerCommand("FullAuto", 0));
   }
 
   public void loadCommandSchedulerShuffleboard(){
