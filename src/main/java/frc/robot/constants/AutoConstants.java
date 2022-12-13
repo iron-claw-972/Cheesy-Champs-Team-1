@@ -6,7 +6,7 @@ public class AutoConstants {
   public final double kRamseteB = 2.0;
   public final double kRamseteZeta = 0.7;
 
-  public final static double kMaxAutoSpeed = 1.0;
-  public final static double kMaxAutoAccel = 1.0; 
+  public final static double kMaxAutoSpeed = 2.0;
+  public final static double kMaxAutoAccel = 2.0;
 
 }
